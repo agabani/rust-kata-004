@@ -1,0 +1,7 @@
+version: "3.8"
+
+services:
+  http-bin:
+    image: kennethreitz/httpbin:latest
+    ports:
+      - 8080:80
