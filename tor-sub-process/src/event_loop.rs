@@ -1,6 +1,6 @@
-use crate::tor_server::command::Command;
-use crate::tor_server::job::Job;
-use crate::tor_server::pid::Pid;
+use crate::command::Command;
+use crate::job::Job;
+use crate::pid::Pid;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::Duration;

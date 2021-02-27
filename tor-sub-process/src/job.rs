@@ -180,11 +180,14 @@ Shutting down.
     }
 
     fn create_job() -> Job {
-        let program = "./target/debug/tor-stub";
-        if !std::path::Path::new(program).exists() {
+        let path = std::env::current_dir()
+            .unwrap()
+            .join("../target/debug/tor-stub");
+
+        if !std::path::Path::new(&path).exists() {
             panic!("tor-stub does not exist. Please run cargo build then try again.");
         }
-        let mut command = Command::new("./target/debug/tor-stub");
+        let mut command = Command::new(&path);
         command.arg("--no-wait").stdout(Stdio::piped());
         Job::new(command)
     }

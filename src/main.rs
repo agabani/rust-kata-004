@@ -1,9 +1,8 @@
-use rust_kata_004::tor_server::command::Command;
-use rust_kata_004::tor_server::controller::Controller;
 use signal_hook::{consts, flag};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use tokio::time::{sleep, Duration};
+use tor_sub_process::{Command, Controller};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {

@@ -1,6 +1,6 @@
-use crate::tor_server::command::Command;
-use crate::tor_server::event_loop;
-use crate::tor_server::pid::Pid;
+use crate::command::Command;
+use crate::event_loop;
+use crate::pid::Pid;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use tokio::task::JoinHandle;
