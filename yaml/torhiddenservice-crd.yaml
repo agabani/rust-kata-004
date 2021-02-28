@@ -1,0 +1,50 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: torhiddenservices.agabani.rust-kata-004
+spec:
+  group: agabani.rust-kata-004
+  names:
+    kind: TorHiddenService
+    plural: torhiddenservices
+    shortNames: []
+    singular: torhiddenservice
+  scope: Namespaced
+  versions:
+    - additionalPrinterColumns: []
+      name: v1
+      schema:
+        openAPIV3Schema:
+          description: "Auto-generated derived type for TorHiddenServiceSpec via `CustomResource`"
+          properties:
+            spec:
+              properties:
+                host:
+                  type: string
+                name:
+                  type: string
+                port:
+                  format: uint16
+                  minimum: 0.0
+                  type: integer
+              required:
+                - host
+                - name
+                - port
+              type: object
+            status:
+              nullable: true
+              properties:
+                hostname:
+                  nullable: true
+                  type: string
+              type: object
+          required:
+            - spec
+          title: TorHiddenService
+          type: object
+      served: true
+      storage: true
+      subresources:
+        status: {}
