@@ -185,7 +185,7 @@ Shutting down.
             .join("../target/debug/tor-stub");
 
         if !std::path::Path::new(&path).exists() {
-            panic!("tor-stub does not exist. Please run cargo build then try again.");
+            panic!("tor-stub does not exist. Please run cargo build --workspace then try again.");
         }
         let mut command = Command::new(&path);
         command.arg("--no-wait").stdout(Stdio::piped());

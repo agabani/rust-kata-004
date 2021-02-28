@@ -184,8 +184,6 @@ dependencies = [
 name = "rust-kata-004"
 version = "0.1.0"
 dependencies = [
- "signal-hook",
- "tokio",
  "tor-sub-process",
 ]
 
@@ -257,6 +255,14 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "tor-stub"
+version = "0.1.0"
+dependencies = [
+ "signal-hook",
+ "tokio",
 ]
 
 [[package]]

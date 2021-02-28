@@ -6,6 +6,7 @@ edition = "2018"
 
 [workspace]
 members = [
+    "tor-stub",
     "tor-sub-process"
 ]
 
@@ -16,12 +17,6 @@ path = "src/lib.rs"
 name = "rust-kata-004"
 path = "src/main.rs"
 
-[[bin]]
-name = "tor-stub"
-path = "src/tor_stub.rs"
-
 [dependencies]
-signal-hook = { version = "0.3.6", features = ["channel"] }
-tokio = { version = "1.2.0", features = ["macros", "process", "rt-multi-thread", "time"] }
 tor-sub-process = { path = "tor-sub-process" }
 
