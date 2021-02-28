@@ -1,5 +1,5 @@
-use crate::tor_server::command::Command;
-use crate::tor_server::scheduler::Scheduler;
+use crate::command::Command;
+use crate::scheduler::Scheduler;
 
 /// Interface with server
 pub struct Controller {
