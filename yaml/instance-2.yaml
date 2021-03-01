@@ -1,0 +1,8 @@
+apiVersion: agabani.rust-kata-004/v1
+kind: TorHiddenService
+metadata:
+  name: test
+spec:
+    name: first-hidden-service
+    host: 127.0.0.1
+    port: 9090
