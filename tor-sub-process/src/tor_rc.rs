@@ -32,8 +32,10 @@ HiddenServicePort {} {}:{}"#,
             .collect::<Vec<String>>();
 
         for hidden_service in configuration.hidden_services.iter() {
-            std::fs::create_dir(&hidden_service.service_directory)
+            std::fs::create_dir_all(&hidden_service.service_directory)
                 .expect("Failed to create directory.");
+
+            wrapper::chmod(&hidden_service.service_directory);
         }
 
         let contents = hidden_services.join("\n");
@@ -46,6 +48,15 @@ impl Drop for TorRc {
     fn drop(&mut self) {
         if std::path::Path::new(&self.path).exists() {
             std::fs::remove_file(&self.path).expect("Failed to delete TorRc file.");
+        }
+    }
+}
+
+mod wrapper {
+    pub fn chmod(directory: &str) {
+        let directory = std::ffi::CString::new(directory).unwrap();
+        unsafe {
+            libc::chmod(directory.as_ptr(), 0o700);
         }
     }
 }

@@ -1,5 +1,5 @@
 use crate::command::Command;
-use crate::configuration::{Configuration, HiddenService};
+use crate::configuration::Configuration;
 use crate::scheduler::Scheduler;
 use crate::tor_rc::TorRc;
 

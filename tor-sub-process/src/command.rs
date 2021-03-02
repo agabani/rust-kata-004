@@ -2,6 +2,7 @@
 pub struct Command {
     program: String,
     no_window_support: bool,
+    tor_rc: String,
 }
 
 impl Command {
@@ -16,10 +17,11 @@ impl Command {
     /// * [MSDN](https://docs.microsoft.com/en-gb/windows/win32/procthread/process-creation-flags?redirectedfrom=MSDN#CREATE_NO_WINDOW)
     /// * [First commit](https://github.com/torproject/tor/commit/b60049544143e8569e491dd30541d28127bfdb22)
     /// * [Latest commit](https://github.com/torproject/tor/blob/tor-0.4.5.6/src/lib/process/process_win32.c#L208-L219)
-    pub fn new(program: &str, no_window_support: bool) -> Self {
+    pub fn new(program: &str, tor_rc: &str, no_window_support: bool) -> Self {
         Self {
             program: program.to_string(),
             no_window_support,
+            tor_rc: tor_rc.to_string(),
         }
     }
 
@@ -31,7 +33,7 @@ impl Command {
          */
 
         let mut command = tokio::process::Command::new("setsid");
-        command.arg(&self.program);
+        command.arg(&self.program).args(&["-f", &self.tor_rc]);
         command
     }
 
@@ -45,7 +47,7 @@ impl Command {
             command.arg(format!("{} | more", &self.program));
             command
         } else {
-            tokio::process::Command::new(&self.program)
+            tokio::process::Command::new(&self.program).args(&["-f", &self.tor_rc])
         }
     }
 }

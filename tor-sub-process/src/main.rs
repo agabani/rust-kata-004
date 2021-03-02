@@ -1,5 +1,5 @@
 use signal_hook::{consts, flag};
-use std::io::{BufRead, Read};
+use std::io::BufRead;
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 use tor_sub_process::{Command, Configuration, Controller, HiddenService};
@@ -9,9 +9,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let term = Arc::new(AtomicBool::new(false));
     register_shutdown_signal(term.clone())?;
 
-    let mut configuration = Configuration {
+    let configuration = Configuration {
         hidden_services: vec![HiddenService {
-            service_directory: "test_service".to_string(),
+            service_directory: "/var/tmp/test_service".to_string(),
             service_port: 80,
             host_address: "127.0.0.1".to_string(),
             host_port: 8080,
@@ -20,8 +20,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let command = create_command(false);
     let mut controller = Controller::new(command);
+    controller.update(&configuration);
 
-    //controller.start();
+    controller.start();
     let stdin = std::io::stdin();
 
     for line in stdin.lock().lines() {
@@ -48,10 +49,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 fn create_command(use_stub: bool) -> Command {
     match (cfg!(target_family = "windows"), use_stub) {
-        (false, false) => Command::new("tor", false),
-        (false, true) => Command::new("./target/debug/tor-stub", false),
-        (true, false) => Command::new("./bin/tor/windows/tor.exe", true),
-        (true, true) => Command::new("./target/debug/tor-stub.exe", false),
+        (false, false) => Command::new("tor", "torrc", false),
+        (false, true) => Command::new("./target/debug/tor-stub", "torrc", false),
+        (true, false) => Command::new("./bin/tor/windows/tor.exe", "torrc", true),
+        (true, true) => Command::new("./target/debug/tor-stub.exe", "torrc", false),
     }
 }
 
