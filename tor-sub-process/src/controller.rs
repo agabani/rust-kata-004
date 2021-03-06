@@ -1,7 +1,9 @@
-use crate::command::Command;
-use crate::configuration::Configuration;
-use crate::scheduler::Scheduler;
-use crate::tor_rc::TorRc;
+use std::path::PathBuf;
+
+use super::command::Command;
+use super::configuration::Configuration;
+use super::scheduler::Scheduler;
+use super::tor_rc::TorRc;
 
 /// Interface with server
 pub struct Controller {
@@ -12,8 +14,8 @@ pub struct Controller {
 impl Controller {
     pub fn new(command: Command) -> Self {
         Self {
-            scheduler: Scheduler::new(command, "tor.pid"),
-            tor_rc: TorRc::new("torrc"),
+            scheduler: Scheduler::new(command, PathBuf::from("tor.pid")),
+            tor_rc: TorRc::new(PathBuf::from("torrc")),
         }
     }
 

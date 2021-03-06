@@ -1,6 +1,7 @@
 use crate::command::Command;
 use crate::event_loop;
 use crate::pid::Pid;
+use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use tokio::task::JoinHandle;
@@ -9,17 +10,17 @@ use tokio::task::JoinHandle;
 pub struct Scheduler {
     command: Command,
     handle: Option<JoinHandle<()>>,
-    pid: String,
+    pid: PathBuf,
     reload: Arc<AtomicBool>,
     terminate: Arc<AtomicBool>,
 }
 
 impl Scheduler {
-    pub fn new(command: Command, pid: &str) -> Self {
+    pub fn new(command: Command, pid: PathBuf) -> Self {
         Self {
             command,
             handle: None,
-            pid: pid.to_string(),
+            pid,
             reload: Arc::new(AtomicBool::new(false)),
             terminate: Arc::new(AtomicBool::new(false)),
         }
@@ -27,7 +28,7 @@ impl Scheduler {
 
     /// Starts the scheduler event loop.
     pub fn start(&mut self) {
-        let pid = Pid::new(&self.pid);
+        let pid = Pid::new(PathBuf::from(&self.pid));
 
         if let Some(id) = pid.read().expect("Failed to read PID.") {
             panic!(

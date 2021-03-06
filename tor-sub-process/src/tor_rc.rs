@@ -1,16 +1,15 @@
 use crate::Configuration;
 use std::fs::File;
 use std::io::Write;
+use std::path::PathBuf;
 
 pub struct TorRc {
-    path: String,
+    path: PathBuf,
 }
 
 impl TorRc {
-    pub fn new(path: &str) -> Self {
-        Self {
-            path: path.to_string(),
-        }
+    pub fn new(path: PathBuf) -> Self {
+        Self { path }
     }
 
     pub fn save(&self, configuration: &Configuration) {
@@ -69,7 +68,7 @@ mod tests {
                 host_port,
             }],
         };
-        let tor_rc = TorRc::new(&path);
+        let tor_rc = TorRc::new(PathBuf::from(&path));
 
         // Act
         tor_rc.save(&value);
@@ -90,7 +89,7 @@ HiddenServicePort {} {}:{}"#,
     fn drop_does_nothing_if_file_does_not_exist() {
         // Arrange
         let path = path();
-        let tor_rc = TorRc::new(&path);
+        let tor_rc = TorRc::new(PathBuf::from(path));
 
         // Act
         std::mem::drop(tor_rc);
@@ -100,7 +99,7 @@ HiddenServicePort {} {}:{}"#,
     fn drop_deletes_file_if_file_exist() {
         // Arrange
         let path = path();
-        let tor_rc = TorRc::new(&path);
+        let tor_rc = TorRc::new(PathBuf::from(&path));
 
         // Act
         std::mem::drop(tor_rc);
