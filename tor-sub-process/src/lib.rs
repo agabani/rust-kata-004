@@ -4,6 +4,7 @@ mod controller;
 mod event_loop;
 mod file_system;
 mod job;
+mod libc_wrapper;
 mod pid;
 mod scheduler;
 mod secret_file;
