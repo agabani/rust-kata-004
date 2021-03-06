@@ -2,6 +2,7 @@ mod command;
 mod configuration;
 mod controller;
 mod event_loop;
+mod file_system;
 mod job;
 mod pid;
 mod scheduler;
