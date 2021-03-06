@@ -6,6 +6,7 @@ mod file_system;
 mod job;
 mod pid;
 mod scheduler;
+mod secret_file;
 mod tor_rc;
 
 pub use command::Command;

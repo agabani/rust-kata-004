@@ -47,7 +47,9 @@ impl Command {
             command.arg(format!("{} | more", &self.program));
             command
         } else {
-            tokio::process::Command::new(&self.program).args(&["-f", &self.tor_rc])
+            let mut command = tokio::process::Command::new(&self.program);
+            command.args(&["-f", &self.tor_rc]);
+            command
         }
     }
 }

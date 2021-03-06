@@ -1,23 +1,6 @@
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
-#[derive(Debug)]
-pub struct HiddenServiceDirectoryFile {
-    pub relative_path: PathBuf,
-    pub contents: Vec<u8>,
-}
-
-impl HiddenServiceDirectoryFile {
-    pub fn from(relative_path: PathBuf, contents: Vec<u8>) -> Result<Self, ()> {
-        if relative_path.is_relative() {
-            Ok(Self {
-                relative_path,
-                contents,
-            })
-        } else {
-            Err(())
-        }
-    }
-}
+use crate::secret_file::SecretFile;
 
 pub struct HiddenServiceDirectory {
     base_path: PathBuf,
@@ -28,7 +11,7 @@ impl HiddenServiceDirectory {
         Self { base_path: path }
     }
 
-    pub fn get_secret_files(&self) -> Vec<HiddenServiceDirectoryFile> {
+    pub fn get_secret_files(&self) -> Vec<SecretFile> {
         let paths = std::fs::read_dir(&self.base_path)
             .unwrap()
             .map(|parent| parent.map(|child| child.path()).unwrap());
@@ -36,7 +19,7 @@ impl HiddenServiceDirectory {
         let file_paths = paths.filter(|path| path.is_file());
 
         let files = file_paths.map(|file| {
-            HiddenServiceDirectoryFile::from(
+            SecretFile::from(
                 PathBuf::from(file.file_name().unwrap()),
                 std::fs::read(file).unwrap(),
             )
@@ -46,7 +29,7 @@ impl HiddenServiceDirectory {
         files.collect::<Vec<_>>()
     }
 
-    pub fn save_secret_files(&self, secret_files: &[HiddenServiceDirectoryFile]) {
+    pub fn save_secret_files(&self, secret_files: &[SecretFile]) {
         /* TODO: create files and directories with the following chmod
            -rw------- hostname
            drwx------ authorized_clients
@@ -66,7 +49,5 @@ mod tests {
         let directory = HiddenServiceDirectory::new(PathBuf::from("/var/tmp/unit_test_service"));
 
         let vec = directory.get_secret_files();
-
-        println!("{:?}", vec);
     }
 }
