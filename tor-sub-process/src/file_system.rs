@@ -43,11 +43,73 @@ impl HiddenServiceDirectory {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use fake::{Fake, Faker};
+    use std::collections::HashMap;
+    use std::path::Path;
 
     #[test]
-    pub fn test() {
-        let directory = HiddenServiceDirectory::new(PathBuf::from("/var/tmp/unit_test_service"));
+    pub fn get_secret_files() {
+        // Arrange
+        let test_directory = TestDirectory::new();
+        let filename_1: String = Faker.fake();
+        let contents_1: Vec<u8> = Faker.fake();
+        let filename_2: String = Faker.fake();
+        let contents_2: Vec<u8> = Faker.fake();
+        let filename_3: String = Faker.fake();
+        let contents_3: Vec<u8> = Faker.fake();
+        test_directory.create_file(&filename_1, &contents_1);
+        test_directory.create_file(&filename_2, &contents_2);
+        test_directory.create_file(&filename_3, &contents_3);
 
-        let vec = directory.get_secret_files();
+        let directory = HiddenServiceDirectory::new(test_directory.path().to_path_buf());
+
+        // Act
+        let files = directory.get_secret_files();
+
+        // Assert
+        assert_eq!(3, files.len());
+
+        let lookup = files
+            .iter()
+            .map(|file| (file.relative_path().to_str().unwrap(), file))
+            .collect::<HashMap<&str, &SecretFile>>();
+
+        let file_1 = lookup.get(filename_1.as_str()).unwrap();
+        assert_eq!(filename_1, file_1.relative_path().to_str().unwrap());
+        assert_eq!(contents_1, file_1.contents());
+        let file_2 = lookup.get(filename_2.as_str()).unwrap();
+        assert_eq!(filename_2, file_2.relative_path().to_str().unwrap());
+        assert_eq!(contents_2, file_2.contents());
+        let file_3 = lookup.get(filename_3.as_str()).unwrap();
+        assert_eq!(filename_3, file_3.relative_path().to_str().unwrap());
+        assert_eq!(contents_3, file_3.contents());
+    }
+
+    pub struct TestDirectory {
+        path: PathBuf,
+    }
+
+    impl TestDirectory {
+        fn new() -> Self {
+            let path = PathBuf::from(format!("test-{}", Faker.fake::<String>()));
+            Self { path }
+        }
+
+        fn path(&self) -> &Path {
+            std::fs::create_dir_all(&self.path).unwrap();
+            self.path.as_path()
+        }
+
+        fn create_file(&self, filename: &str, contents: &[u8]) {
+            std::fs::create_dir_all(&self.path).unwrap();
+            let path = &self.path.join(filename);
+            std::fs::write(path, contents).unwrap();
+        }
+    }
+
+    impl Drop for TestDirectory {
+        fn drop(&mut self) {
+            std::fs::remove_dir_all(&self.path).unwrap();
+        }
     }
 }
