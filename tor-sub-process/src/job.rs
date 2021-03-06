@@ -1,6 +1,8 @@
 use std::process::{ExitStatus, Output};
 use tokio::process::{Child, Command};
 
+use super::libc_wrapper;
+
 /// Represents a child process as a single unit of work.
 pub struct Job {
     command: Command,
@@ -30,7 +32,7 @@ impl Job {
     pub async fn stop(&mut self) -> Result<Output, std::io::Error> {
         if let Some(child) = self.child.take() {
             if let Some(id) = child.id() {
-                signal::sigterm(id);
+                libc_wrapper::send_sigterm(id).unwrap();
             }
             let output = child.wait_with_output().await?;
             return Ok(output);
@@ -53,7 +55,7 @@ impl Job {
     pub fn reload(&self) {
         if let Some(child) = &self.child {
             if let Some(id) = child.id() {
-                signal::sighup(id);
+                libc_wrapper::send_sighup(id).unwrap();
                 return;
             }
         }
@@ -64,30 +66,6 @@ impl Job {
     /// Gets the process id of the running job.
     pub fn id(&self) -> Option<u32> {
         self.child.as_ref()?.id()
-    }
-}
-
-/// Safe wrappers for libc interfaces
-mod signal {
-    #[cfg(target_family = "unix")]
-    pub fn sighup(id: u32) {
-        unsafe {
-            libc::kill(id as i32, signal_hook::consts::signal::SIGHUP);
-        }
-    }
-
-    #[cfg(target_family = "unix")]
-    pub fn sigterm(id: u32) {
-        unsafe {
-            libc::kill(id as i32, signal_hook::consts::signal::SIGTERM);
-        }
-    }
-
-    #[cfg(target_family = "windows")]
-    pub fn sigterm(id: u32) {
-        unsafe {
-            libc::signal(signal_hook::consts::signal::SIGTERM, id as usize);
-        }
     }
 }
 
