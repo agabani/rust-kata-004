@@ -1,12 +1,14 @@
 use std::fmt::Formatter;
 use std::path::{Path, PathBuf};
 
+/// Interface for Secret Files in Hidden Service Directories.
 pub struct SecretFile {
     relative_path: PathBuf,
     contents: Vec<u8>,
 }
 
 impl std::fmt::Display for SecretFile {
+    /// Formats the SecretFile without exposing the contents.
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
@@ -18,6 +20,9 @@ impl std::fmt::Display for SecretFile {
 }
 
 impl SecretFile {
+    /// Creates a `SecretFile` from a relative path and contents.
+    ///
+    /// Fails if absolute path is provided.
     pub fn from(relative_path: PathBuf, contents: Vec<u8>) -> Result<Self, ()> {
         if relative_path.is_relative() {
             Ok(Self {
@@ -29,10 +34,12 @@ impl SecretFile {
         }
     }
 
+    /// Gets the relative path of the SecretFile.
     pub fn relative_path(&self) -> &Path {
         self.relative_path.as_path()
     }
 
+    /// Gets the contents of the secretFile.
     pub fn contents(&self) -> &[u8] {
         &self.contents
     }

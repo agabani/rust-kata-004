@@ -1,19 +1,25 @@
+use std::fs;
 use std::path::PathBuf;
 
-use crate::libc_wrapper::{set_mode_600, set_mode_700};
-use crate::secret_file::SecretFile;
+use super::libc_wrapper::{set_mode_600, set_mode_700};
+use super::secret_file::SecretFile;
 
+/// Interface for reading and writing files to hidden service directory.
 pub struct HiddenServiceDirectory {
     base_path: PathBuf,
 }
 
 impl HiddenServiceDirectory {
+    /// Creates new `HiddenServiceDirectory` interface.
     pub fn new(path: PathBuf) -> Self {
         Self { base_path: path }
     }
 
+    /// Gets all secret files from directory.
+    ///
+    /// TODO: Read files from authorized_clients folder. Not needed for current implementation.
     pub fn get_secret_files(&self) -> Vec<SecretFile> {
-        let paths = std::fs::read_dir(&self.base_path)
+        let paths = fs::read_dir(&self.base_path)
             .unwrap()
             .map(|parent| parent.map(|child| child.path()).unwrap());
 
@@ -22,7 +28,7 @@ impl HiddenServiceDirectory {
         let files = file_paths.map(|file| {
             SecretFile::from(
                 PathBuf::from(file.file_name().unwrap()),
-                std::fs::read(file).unwrap(),
+                fs::read(file).unwrap(),
             )
             .unwrap()
         });
@@ -30,14 +36,15 @@ impl HiddenServiceDirectory {
         files.collect::<Vec<_>>()
     }
 
+    /// Saves all secret files to directory and sets file permissions.
     pub fn save_secret_files(&self, secret_files: &[SecretFile]) {
         let authorized_clients = &self.base_path.join("authorized_clients");
-        std::fs::create_dir_all(authorized_clients).unwrap();
+        fs::create_dir_all(authorized_clients).unwrap();
         set_mode_700(authorized_clients.to_str().unwrap()).unwrap();
 
         for secret_file in secret_files {
             let path = &self.base_path.join(secret_file.relative_path());
-            std::fs::write(path, secret_file.contents()).unwrap();
+            fs::write(path, secret_file.contents()).unwrap();
             set_mode_600(path.to_str().unwrap()).unwrap();
         }
     }
@@ -154,20 +161,20 @@ mod tests {
         fn create_file(&self, filename: &str, contents: &[u8]) {
             self.init();
             let path = &self.path.join(filename);
-            std::fs::write(path, contents).unwrap();
+            fs::write(path, contents).unwrap();
             set_mode_600(path.to_str().unwrap()).unwrap();
         }
 
         fn create_directory(&self, path: &str) {
             self.init();
             let directory = &self.path.join(path);
-            std::fs::create_dir_all(&directory).unwrap();
+            fs::create_dir_all(&directory).unwrap();
             set_mode_700(&directory.to_str().unwrap()).unwrap();
         }
 
         fn read_file(&self, filename: &str) -> (Vec<u8>, u16) {
             let path = &self.path.join(filename);
-            let contents = std::fs::read(path).unwrap();
+            let contents = fs::read(path).unwrap();
             let mode = get_mode(path.to_str().unwrap()).unwrap();
             (contents, mode)
         }
@@ -179,14 +186,14 @@ mod tests {
         }
 
         fn init(&self) {
-            std::fs::create_dir_all(&self.path).unwrap();
+            fs::create_dir_all(&self.path).unwrap();
             set_mode_700(&self.path.to_str().unwrap()).unwrap();
         }
     }
 
     impl Drop for TestDirectory {
         fn drop(&mut self) {
-            std::fs::remove_dir_all(&self.path).unwrap();
+            fs::remove_dir_all(&self.path).unwrap();
         }
     }
 }

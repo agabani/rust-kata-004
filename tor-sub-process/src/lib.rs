@@ -2,7 +2,7 @@ mod command;
 mod configuration;
 mod controller;
 mod event_loop;
-mod file_system;
+mod hidden_service_directory;
 mod job;
 mod libc_wrapper;
 mod pid;
