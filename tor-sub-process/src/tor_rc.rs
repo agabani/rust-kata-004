@@ -31,13 +31,6 @@ HiddenServicePort {} {}:{}"#,
             })
             .collect::<Vec<String>>();
 
-        for hidden_service in configuration.hidden_services.iter() {
-            std::fs::create_dir_all(&hidden_service.service_directory)
-                .expect("Failed to create directory.");
-
-            wrapper::chmod(&hidden_service.service_directory);
-        }
-
         let contents = hidden_services.join("\n");
         file.write(contents.as_bytes())
             .expect("Failed to write to file.");
@@ -48,15 +41,6 @@ impl Drop for TorRc {
     fn drop(&mut self) {
         if std::path::Path::new(&self.path).exists() {
             std::fs::remove_file(&self.path).expect("Failed to delete TorRc file.");
-        }
-    }
-}
-
-mod wrapper {
-    pub fn chmod(directory: &str) {
-        let directory = std::ffi::CString::new(directory).unwrap();
-        unsafe {
-            libc::chmod(directory.as_ptr(), 0o700);
         }
     }
 }
@@ -75,7 +59,7 @@ mod tests {
         let host_address = Faker.fake::<String>();
         let host_port = Faker.fake::<u16>();
 
-        let path = format!("test-{}.pid", Faker.fake::<String>());
+        let path = path();
 
         let value = Configuration {
             hidden_services: vec![HiddenService {
@@ -105,7 +89,7 @@ HiddenServicePort {} {}:{}"#,
     #[test]
     fn drop_does_nothing_if_file_does_not_exist() {
         // Arrange
-        let path = format!("test-{}.torrc", Faker.fake::<String>());
+        let path = path();
         let tor_rc = TorRc::new(&path);
 
         // Act
@@ -115,7 +99,7 @@ HiddenServicePort {} {}:{}"#,
     #[test]
     fn drop_deletes_file_if_file_exist() {
         // Arrange
-        let path = format!("test-{}.torrc", Faker.fake::<String>());
+        let path = path();
         let tor_rc = TorRc::new(&path);
 
         // Act
@@ -123,5 +107,13 @@ HiddenServicePort {} {}:{}"#,
 
         // Assert
         assert_eq!(false, std::path::Path::new(&path).exists())
+    }
+
+    fn path() -> String {
+        if cfg!(target_family = "unix") {
+            format!("/var/tmp/test-{}.torrc", Faker.fake::<String>())
+        } else {
+            format!("test-{}.torrc", Faker.fake::<String>())
+        }
     }
 }
