@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use crate::libc_wrapper::set_mode_600;
+use crate::libc_wrapper::{set_mode_600, set_mode_700};
 use crate::secret_file::SecretFile;
 
 pub struct HiddenServiceDirectory {
@@ -31,6 +31,10 @@ impl HiddenServiceDirectory {
     }
 
     pub fn save_secret_files(&self, secret_files: &[SecretFile]) {
+        let authorized_clients = &self.base_path.join("authorized_clients");
+        std::fs::create_dir_all(authorized_clients).unwrap();
+        set_mode_700(authorized_clients.to_str().unwrap()).unwrap();
+
         for secret_file in secret_files {
             let path = &self.base_path.join(secret_file.relative_path());
             std::fs::write(path, secret_file.contents()).unwrap();
@@ -57,9 +61,11 @@ mod tests {
         let contents_2: Vec<u8> = Faker.fake();
         let filename_3: String = Faker.fake();
         let contents_3: Vec<u8> = Faker.fake();
+        let sub_directory: String = Faker.fake();
         test_directory.create_file(&filename_1, &contents_1);
         test_directory.create_file(&filename_2, &contents_2);
         test_directory.create_file(&filename_3, &contents_3);
+        test_directory.create_directory(&sub_directory);
 
         let directory = HiddenServiceDirectory::new(test_directory.path().to_path_buf());
 
@@ -106,21 +112,23 @@ mod tests {
         ]);
 
         // Assert
-        let mode = if cfg!(target_family = "unix") {
-            0o600
+        let (file_mode, directory_mode) = if cfg!(target_family = "unix") {
+            (0o600, 0o700)
         } else {
-            0o666
+            (0o666, 0o777)
         };
 
         let (file_1, mode_1) = test_directory.read_file(filename_1.as_str());
         assert_eq!(contents_1, file_1);
-        assert_eq!(mode, mode_1);
+        assert_eq!(file_mode, mode_1);
         let (file_2, mode_2) = test_directory.read_file(filename_2.as_str());
         assert_eq!(contents_2, file_2);
-        assert_eq!(mode, mode_2);
+        assert_eq!(file_mode, mode_2);
         let (file_3, mode_3) = test_directory.read_file(filename_3.as_str());
         assert_eq!(contents_3, file_3);
-        assert_eq!(mode, mode_3);
+        assert_eq!(file_mode, mode_3);
+        let mode_4 = test_directory.read_directory("authorized_clients");
+        assert_eq!(directory_mode, mode_4);
     }
 
     pub struct TestDirectory {
@@ -139,16 +147,22 @@ mod tests {
         }
 
         fn path(&self) -> &Path {
-            std::fs::create_dir_all(&self.path).unwrap();
-            set_mode_700(&self.path.to_str().unwrap()).unwrap();
+            self.init();
             self.path.as_path()
         }
 
         fn create_file(&self, filename: &str, contents: &[u8]) {
-            std::fs::create_dir_all(&self.path).unwrap();
+            self.init();
             let path = &self.path.join(filename);
             std::fs::write(path, contents).unwrap();
             set_mode_600(path.to_str().unwrap()).unwrap();
+        }
+
+        fn create_directory(&self, path: &str) {
+            self.init();
+            let directory = &self.path.join(path);
+            std::fs::create_dir_all(&directory).unwrap();
+            set_mode_700(&directory.to_str().unwrap()).unwrap();
         }
 
         fn read_file(&self, filename: &str) -> (Vec<u8>, u16) {
@@ -156,6 +170,17 @@ mod tests {
             let contents = std::fs::read(path).unwrap();
             let mode = get_mode(path.to_str().unwrap()).unwrap();
             (contents, mode)
+        }
+
+        fn read_directory(&self, path: &str) -> u16 {
+            let path = &self.path.join(path);
+            let mode = get_mode(path.to_str().unwrap()).unwrap();
+            mode
+        }
+
+        fn init(&self) {
+            std::fs::create_dir_all(&self.path).unwrap();
+            set_mode_700(&self.path.to_str().unwrap()).unwrap();
         }
     }
 
