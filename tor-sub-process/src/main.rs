@@ -1,5 +1,6 @@
 use signal_hook::{consts, flag};
 use std::io::BufRead;
+use std::path::{PathBuf, Path};
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 use tor_sub_process::{Command, Configuration, Controller, HiddenService};
@@ -18,8 +19,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }],
     };
 
-    let command = create_command(false);
-    let mut controller = Controller::new(command);
+    let base_path = PathBuf::from("/var/tmp/tor-sub-process");
+    let pid = base_path.join("tor.pid");
+    let tor_rc = base_path.join("torrc");
+    let hidden_service_dir = base_path;
+    let command = create_command(false, &tor_rc);
+    let mut controller = Controller::new(
+        command,
+        pid,
+        tor_rc,
+        hidden_service_dir,
+    );
     controller.update(&configuration);
 
     controller.start();
@@ -47,12 +57,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-fn create_command(use_stub: bool) -> Command {
+fn create_command(use_stub: bool, tor_rc: &Path) -> Command {
+    let tor_rc = tor_rc.to_str().unwrap();
     match (cfg!(target_family = "windows"), use_stub) {
-        (false, false) => Command::new("tor", "torrc", false),
-        (false, true) => Command::new("./target/debug/tor-stub", "torrc", false),
-        (true, false) => Command::new("./bin/tor/windows/tor.exe", "torrc", true),
-        (true, true) => Command::new("./target/debug/tor-stub.exe", "torrc", false),
+        (false, false) => Command::new("tor", tor_rc, false),
+        (false, true) => Command::new("./target/debug/tor-stub", tor_rc, false),
+        (true, false) => Command::new("./bin/tor/windows/tor.exe", tor_rc, true),
+        (true, true) => Command::new("./target/debug/tor-stub.exe", tor_rc, false),
     }
 }
 

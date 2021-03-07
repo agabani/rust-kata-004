@@ -2,6 +2,7 @@ use std::path::PathBuf;
 
 use super::command::Command;
 use super::configuration::Configuration;
+use super::hidden_service_directory::HiddenServiceDirectory;
 use super::scheduler::Scheduler;
 use super::tor_rc::TorRc;
 
@@ -9,13 +10,20 @@ use super::tor_rc::TorRc;
 pub struct Controller {
     scheduler: Scheduler,
     tor_rc: TorRc,
+    hidden_service_directory: HiddenServiceDirectory,
 }
 
 impl Controller {
-    pub fn new(command: Command) -> Self {
+    pub fn new(
+        command: Command,
+        pid: PathBuf,
+        tor_rc: PathBuf,
+        hidden_service_dir: PathBuf,
+    ) -> Self {
         Self {
-            scheduler: Scheduler::new(command, PathBuf::from("tor.pid")),
-            tor_rc: TorRc::new(PathBuf::from("torrc")),
+            scheduler: Scheduler::new(command, pid),
+            tor_rc: TorRc::new(tor_rc),
+            hidden_service_directory: HiddenServiceDirectory::new(hidden_service_dir),
         }
     }
 
