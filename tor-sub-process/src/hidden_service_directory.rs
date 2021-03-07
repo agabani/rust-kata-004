@@ -184,7 +184,7 @@ mod tests {
             fs::create_dir_all(&directory).unwrap();
             set_mode_700(&directory.to_str().unwrap()).unwrap();
             Self {
-                path: self.path.join(path)
+                path: self.path.join(path),
             }
         }
 

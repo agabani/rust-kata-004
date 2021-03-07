@@ -7,12 +7,23 @@ pub struct TorRc {
     path: PathBuf,
 }
 
+pub struct TorRcConfiguration {
+    pub hidden_services: Vec<TorRcHiddenServiceConfiguration>,
+}
+
+pub struct TorRcHiddenServiceConfiguration {
+    pub service_directory: PathBuf,
+    pub service_port: u16,
+    pub host_address: String,
+    pub host_port: u16,
+}
+
 impl TorRc {
     pub fn new(path: PathBuf) -> Self {
         Self { path }
     }
 
-    pub fn save(&self, configuration: &Configuration) {
+    pub fn save(&self, configuration: &TorRcConfiguration) {
         let mut file = File::create(&self.path).expect("Failed to open file.");
 
         let hidden_services = configuration
@@ -22,7 +33,7 @@ impl TorRc {
                 format!(
                     r#"HiddenServiceDir {}
 HiddenServicePort {} {}:{}"#,
-                    hidden_service.service_directory,
+                    hidden_service.service_directory.to_str().unwrap(),
                     hidden_service.service_port,
                     hidden_service.host_address,
                     hidden_service.host_port
@@ -60,9 +71,9 @@ mod tests {
 
         let path = path();
 
-        let value = Configuration {
-            hidden_services: vec![HiddenService {
-                service_directory: service_directory.clone(),
+        let value = TorRcConfiguration {
+            hidden_services: vec![TorRcHiddenServiceConfiguration {
+                service_directory: PathBuf::from(service_directory),
                 service_port,
                 host_address: host_address.clone(),
                 host_port,

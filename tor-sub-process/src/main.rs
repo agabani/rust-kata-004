@@ -13,16 +13,30 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let working_directory = PathBuf::from("/var/tmp/tor-sub-process");
 
     let configuration = Configuration {
-        hidden_services: vec![HiddenService {
-            service_directory: "/var/tmp/test_service".to_string(),
-            service_port: 80,
-            host_address: "127.0.0.1".to_string(),
-            host_port: 8080,
-        }],
+        hidden_services: vec![
+            HiddenService {
+                service_name: "test_service_1".to_string(),
+                service_port: 80,
+                host_address: "127.0.0.1".to_string(),
+                host_port: 8081,
+            },
+            HiddenService {
+                service_name: "test_service_2".to_string(),
+                service_port: 80,
+                host_address: "127.0.0.1".to_string(),
+                host_port: 8082,
+            },
+            HiddenService {
+                service_name: "test_service_3".to_string(),
+                service_port: 80,
+                host_address: "127.0.0.1".to_string(),
+                host_port: 8083,
+            },
+        ],
     };
 
     let (command, no_window_support) = create_command(false);
-    let mut controller = Controller::new(command, &working_directory, no_window_support);
+    let mut controller = Controller::new(command, working_directory, no_window_support);
     controller.update(&configuration);
 
     controller.start();
@@ -45,7 +59,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 let files = controller
                     .backup(&configuration)
                     .iter()
-                    .map(|file| format!("{}", file))
+                    .map(|(service, files)| {
+                        let files = files
+                            .iter()
+                            .map(|file| format!("{}", file))
+                            .collect::<Vec<_>>();
+                        format!("service: {}, files: {:?}", service, files)
+                    })
                     .collect::<Vec<_>>();
                 println!("{:?}", files);
             }
