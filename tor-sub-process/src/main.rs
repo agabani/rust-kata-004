@@ -59,8 +59,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         service_name: args[0].to_string(),
                         service_port: str::parse::<u16>(args[1]).unwrap(),
                         host_address: args[2].to_string(),
-                        host_port: str::parse::<u16>(args[3]).unwrap()
+                        host_port: str::parse::<u16>(args[3]).unwrap(),
                     });
+
+                    controller.update(&configuration);
+                }
+                "delete_service" => {
+                    let service_name = args[0];
+                    let index = configuration
+                        .hidden_services
+                        .iter()
+                        .position(|hidden_service| hidden_service.service_name == service_name)
+                        .unwrap();
+                    configuration.hidden_services.remove(index);
 
                     controller.update(&configuration);
                 }
