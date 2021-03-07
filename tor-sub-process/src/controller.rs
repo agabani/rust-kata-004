@@ -42,7 +42,7 @@ impl Controller {
         let _ = self.scheduler.stop().await;
     }
 
-    pub fn update(&self, configuration: &Configuration) {
+    pub fn update(&mut self, configuration: &Configuration) {
         let tor_rc_configuration = TorRcConfiguration {
             hidden_services: configuration
                 .hidden_services
@@ -57,6 +57,7 @@ impl Controller {
         };
 
         self.tor_rc.save(&tor_rc_configuration);
+        self.scheduler.reload();
     }
 
     pub fn backup(&self, configuration: &Configuration) -> HashMap<String, Vec<SecretFile>> {

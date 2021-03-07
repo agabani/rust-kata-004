@@ -65,8 +65,14 @@ impl Scheduler {
         if self.handle.is_some() {
             self.reload.swap(true, Ordering::Relaxed);
             return;
+        } else {
+            /* TODO: log reload signal was sent.
+             *
+             * A reload signal was requested but no process is available to handle the request.
+             * This happens when the host changes configuration before the sub process has spawned.
+             *
+             * TODO: determine if not guaranteeing a signal sent creates a race condition.
+             */
         }
-
-        unimplemented!();
     }
 }
