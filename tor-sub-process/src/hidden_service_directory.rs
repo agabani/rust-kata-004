@@ -42,7 +42,7 @@ impl HiddenServiceDirectory {
     pub fn save_secret_files(&self, service_name: &str, secret_files: &[SecretFile]) {
         let service_path = self.base_path.join(service_name);
 
-        /// `authorized_clients` folder is created by tor executable, we create this just in case.
+        // `authorized_clients` folder is created by tor executable, we create this just in case.
         let authorized_clients = &service_path.join("authorized_clients");
         fs::create_dir_all(authorized_clients).unwrap();
         set_mode_700(authorized_clients.to_str().unwrap()).unwrap();

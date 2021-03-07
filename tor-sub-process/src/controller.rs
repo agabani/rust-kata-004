@@ -1,14 +1,14 @@
-use std::path::{Path, PathBuf};
+use std::collections::HashMap;
+use std::path::PathBuf;
 
 use super::command::Command;
 use super::configuration::Configuration;
 use super::hidden_service_directory::HiddenServiceDirectory;
 use super::scheduler::Scheduler;
 use super::tor_rc::TorRc;
-use crate::pid::Pid;
 use crate::secret_file::SecretFile;
 use crate::tor_rc::{TorRcConfiguration, TorRcHiddenServiceConfiguration};
-use std::collections::HashMap;
+use crate::HiddenService;
 
 /// Interface with server
 pub struct Controller {
@@ -60,9 +60,8 @@ impl Controller {
         self.scheduler.reload();
     }
 
-    pub fn backup(&self, configuration: &Configuration) -> HashMap<String, Vec<SecretFile>> {
-        configuration
-            .hidden_services
+    pub fn backup(&self, hidden_services: &[HiddenService]) -> HashMap<String, Vec<SecretFile>> {
+        hidden_services
             .iter()
             .map(|hidden_service| {
                 let files = self
@@ -74,11 +73,53 @@ impl Controller {
             .collect()
     }
 
+    pub fn restore(&self, hidden_service: &HiddenService, secret_files: &[SecretFile]) {
+        self.hidden_service_directory
+            .save_secret_files(&hidden_service.service_name, secret_files);
+    }
+
     pub fn create_hidden_service(&mut self) {
         self.scheduler.reload();
     }
 
     pub fn delete_hidden_service(&mut self) {
         self.scheduler.reload();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tokio::time::{sleep, Duration};
+
+    #[tokio::test]
+    async fn test() {
+        // Arrange
+        let mut controller = controller();
+
+        // Act
+        controller.start();
+        sleep(Duration::from_millis(1000)).await;
+        controller.stop().await;
+        sleep(Duration::from_millis(1000)).await;
+        controller.start();
+        sleep(Duration::from_millis(1000)).await;
+        controller.stop().await;
+        sleep(Duration::from_millis(1000)).await;
+
+        // Assert
+        /* TODO: resolve bug
+         *      Starting a controller after being stopped once does not spawn sub process.
+         *      Update tor-stub to output events to file so integration tests can Assert.
+         *      "cargo test --package tor-sub-process controller -- --nocapture"
+         */
+    }
+
+    fn controller() -> Controller {
+        let path = std::path::PathBuf::from("/var/tmp/test-tor-sub-process-integration");
+
+        let controller = Controller::new("../target/debug/tor-stub --no-wait", path, false);
+
+        controller
     }
 }

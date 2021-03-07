@@ -32,8 +32,11 @@ impl Command {
          *   * one SIGINT from terminal when CTRL+C sends SIGINT to all process in same PGID
          */
 
+        let args = &self.program.split(" ").collect::<Vec<_>>();
+        let (c, a) = args.split_first().unwrap();
+
         let mut command = tokio::process::Command::new("setsid");
-        command.arg(&self.program).args(&["-f", &self.tor_rc]);
+        command.arg(c).args(a).args(&["-f", &self.tor_rc]);
         command
     }
 
@@ -47,8 +50,11 @@ impl Command {
             command.arg(format!("{} | more", &self.program));
             command
         } else {
+            let args = &self.program.split(" ").collect::<Vec<_>>();
+            let (c, a) = args.split_first().unwrap();
+
             let mut command = tokio::process::Command::new(&self.program);
-            command.args(&["-f", &self.tor_rc]);
+            command.arg(c).args(a).args(&["-f", &self.tor_rc]);
             command
         }
     }

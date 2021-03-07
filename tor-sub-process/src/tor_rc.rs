@@ -1,4 +1,3 @@
-use crate::Configuration;
 use std::fs::File;
 use std::io::Write;
 use std::path::PathBuf;
@@ -58,7 +57,6 @@ impl Drop for TorRc {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::HiddenService;
     use fake::{Fake, Faker};
 
     #[test]
@@ -73,7 +71,7 @@ mod tests {
 
         let value = TorRcConfiguration {
             hidden_services: vec![TorRcHiddenServiceConfiguration {
-                service_directory: PathBuf::from(service_directory),
+                service_directory: PathBuf::from(&service_directory),
                 service_port,
                 host_address: host_address.clone(),
                 host_port,

@@ -1,9 +1,9 @@
 use signal_hook::{consts, flag};
 use std::io::BufRead;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
-use tor_sub_process::{Command, Configuration, Controller, HiddenService};
+use tor_sub_process::{Configuration, Controller, HiddenService};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -39,7 +39,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut controller = Controller::new(command, working_directory, no_window_support);
     controller.update(&configuration);
 
-    controller.start();
     let stdin = std::io::stdin();
 
     for line in stdin.lock().lines() {
@@ -47,6 +46,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let result = line.split(" ").collect::<Vec<_>>();
         if let Some((&command, args)) = result.split_first() {
             match command {
+                "start" => {
+                    controller.start();
+                }
+                "stop" => {
+                    controller.stop().await;
+                }
                 "shutdown" => {
                     controller.stop().await;
                     return Ok(());
@@ -77,7 +82,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
                 "backup" => {
                     let files = controller
-                        .backup(&configuration)
+                        .backup(&configuration.hidden_services)
                         .iter()
                         .map(|(service, files)| {
                             let files = files
