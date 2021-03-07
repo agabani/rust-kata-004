@@ -1,6 +1,6 @@
 use signal_hook::{consts, flag};
 use std::io::BufRead;
-use std::path::{PathBuf, Path};
+use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 use tor_sub_process::{Command, Configuration, Controller, HiddenService};
@@ -9,6 +9,8 @@ use tor_sub_process::{Command, Configuration, Controller, HiddenService};
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let term = Arc::new(AtomicBool::new(false));
     register_shutdown_signal(term.clone())?;
+
+    let working_directory = PathBuf::from("/var/tmp/tor-sub-process");
 
     let configuration = Configuration {
         hidden_services: vec![HiddenService {
@@ -19,17 +21,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }],
     };
 
-    let base_path = PathBuf::from("/var/tmp/tor-sub-process");
-    let pid = base_path.join("tor.pid");
-    let tor_rc = base_path.join("torrc");
-    let hidden_service_dir = base_path;
-    let command = create_command(false, &tor_rc);
-    let mut controller = Controller::new(
-        command,
-        pid,
-        tor_rc,
-        hidden_service_dir,
-    );
+    let (command, no_window_support) = create_command(false);
+    let mut controller = Controller::new(command, &working_directory, no_window_support);
     controller.update(&configuration);
 
     controller.start();
@@ -48,6 +41,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             "create_service" => {
                 controller.update(&configuration);
             }
+            "backup" => {
+                let files = controller
+                    .backup(&configuration)
+                    .iter()
+                    .map(|file| format!("{}", file))
+                    .collect::<Vec<_>>();
+                println!("{:?}", files);
+            }
             result => {
                 println!("unknown command: {}", result)
             }
@@ -57,13 +58,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-fn create_command(use_stub: bool, tor_rc: &Path) -> Command {
-    let tor_rc = tor_rc.to_str().unwrap();
+fn create_command<'a>(use_stub: bool) -> (&'a str, bool) {
     match (cfg!(target_family = "windows"), use_stub) {
-        (false, false) => Command::new("tor", tor_rc, false),
-        (false, true) => Command::new("./target/debug/tor-stub", tor_rc, false),
-        (true, false) => Command::new("./bin/tor/windows/tor.exe", tor_rc, true),
-        (true, true) => Command::new("./target/debug/tor-stub.exe", tor_rc, false),
+        (false, false) => ("tor", false),
+        (false, true) => ("./target/debug/tor-stub", false),
+        (true, false) => ("./bin/tor/windows/tor.exe", true),
+        (true, true) => ("./target/debug/tor-stub.exe", false),
     }
 }
 

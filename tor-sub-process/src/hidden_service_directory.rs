@@ -18,8 +18,10 @@ impl HiddenServiceDirectory {
     /// Gets all secret files from directory.
     ///
     /// TODO: Read files from authorized_clients folder. Not needed for current implementation.
-    pub fn get_secret_files(&self) -> Vec<SecretFile> {
-        let paths = fs::read_dir(&self.base_path)
+    pub fn get_secret_files(&self, service_name: &str) -> Vec<SecretFile> {
+        let service_path = self.base_path.join(service_name);
+
+        let paths = fs::read_dir(&service_path)
             .unwrap()
             .map(|parent| parent.map(|child| child.path()).unwrap());
 
@@ -37,13 +39,16 @@ impl HiddenServiceDirectory {
     }
 
     /// Saves all secret files to directory and sets file permissions.
-    pub fn save_secret_files(&self, secret_files: &[SecretFile]) {
-        let authorized_clients = &self.base_path.join("authorized_clients");
+    pub fn save_secret_files(&self, service_name: &str, secret_files: &[SecretFile]) {
+        let service_path = self.base_path.join(service_name);
+
+        /// `authorized_clients` folder is created by tor executable, we create this just in case.
+        let authorized_clients = &service_path.join("authorized_clients");
         fs::create_dir_all(authorized_clients).unwrap();
         set_mode_700(authorized_clients.to_str().unwrap()).unwrap();
 
         for secret_file in secret_files {
-            let path = &self.base_path.join(secret_file.relative_path());
+            let path = &service_path.join(secret_file.relative_path());
             fs::write(path, secret_file.contents()).unwrap();
             set_mode_600(path.to_str().unwrap()).unwrap();
         }
@@ -61,7 +66,10 @@ mod tests {
     #[test]
     pub fn get_secret_files() {
         // Arrange
-        let test_directory = TestDirectory::new();
+        let working_directory = TestDirectory::new();
+        let service_name: String = Faker.fake();
+        let service_directory = working_directory.create_directory(&service_name);
+
         let filename_1: String = Faker.fake();
         let contents_1: Vec<u8> = Faker.fake();
         let filename_2: String = Faker.fake();
@@ -69,15 +77,15 @@ mod tests {
         let filename_3: String = Faker.fake();
         let contents_3: Vec<u8> = Faker.fake();
         let sub_directory: String = Faker.fake();
-        test_directory.create_file(&filename_1, &contents_1);
-        test_directory.create_file(&filename_2, &contents_2);
-        test_directory.create_file(&filename_3, &contents_3);
-        test_directory.create_directory(&sub_directory);
+        service_directory.create_file(&filename_1, &contents_1);
+        service_directory.create_file(&filename_2, &contents_2);
+        service_directory.create_file(&filename_3, &contents_3);
+        let _ = service_directory.create_directory(&sub_directory);
 
-        let directory = HiddenServiceDirectory::new(test_directory.path().to_path_buf());
+        let directory = HiddenServiceDirectory::new(working_directory.path().to_path_buf());
 
         // Act
-        let files = directory.get_secret_files();
+        let files = directory.get_secret_files(&service_name);
 
         // Assert
         assert_eq!(3, files.len());
@@ -101,7 +109,9 @@ mod tests {
     #[test]
     pub fn save_secret_files() {
         // Arrange
-        let test_directory = TestDirectory::new();
+        let working_directory = TestDirectory::new();
+        let service_name: String = Faker.fake();
+        let service_directory = working_directory.create_directory(&service_name);
         let filename_1: String = Faker.fake();
         let contents_1: Vec<u8> = Faker.fake();
         let filename_2: String = Faker.fake();
@@ -109,14 +119,17 @@ mod tests {
         let filename_3: String = Faker.fake();
         let contents_3: Vec<u8> = Faker.fake();
 
-        let directory = HiddenServiceDirectory::new(test_directory.path().to_path_buf());
+        let directory = HiddenServiceDirectory::new(working_directory.path().to_path_buf());
 
         // Act
-        directory.save_secret_files(&vec![
-            SecretFile::from(PathBuf::from(&filename_1), contents_1.clone()).unwrap(),
-            SecretFile::from(PathBuf::from(&filename_2), contents_2.clone()).unwrap(),
-            SecretFile::from(PathBuf::from(&filename_3), contents_3.clone()).unwrap(),
-        ]);
+        directory.save_secret_files(
+            &service_name,
+            &vec![
+                SecretFile::from(PathBuf::from(&filename_1), contents_1.clone()).unwrap(),
+                SecretFile::from(PathBuf::from(&filename_2), contents_2.clone()).unwrap(),
+                SecretFile::from(PathBuf::from(&filename_3), contents_3.clone()).unwrap(),
+            ],
+        );
 
         // Assert
         let (file_mode, directory_mode) = if cfg!(target_family = "unix") {
@@ -125,16 +138,16 @@ mod tests {
             (0o666, 0o777)
         };
 
-        let (file_1, mode_1) = test_directory.read_file(filename_1.as_str());
+        let (file_1, mode_1) = service_directory.read_file(filename_1.as_str());
         assert_eq!(contents_1, file_1);
         assert_eq!(file_mode, mode_1);
-        let (file_2, mode_2) = test_directory.read_file(filename_2.as_str());
+        let (file_2, mode_2) = service_directory.read_file(filename_2.as_str());
         assert_eq!(contents_2, file_2);
         assert_eq!(file_mode, mode_2);
-        let (file_3, mode_3) = test_directory.read_file(filename_3.as_str());
+        let (file_3, mode_3) = service_directory.read_file(filename_3.as_str());
         assert_eq!(contents_3, file_3);
         assert_eq!(file_mode, mode_3);
-        let mode_4 = test_directory.read_directory("authorized_clients");
+        let mode_4 = service_directory.read_directory("authorized_clients");
         assert_eq!(directory_mode, mode_4);
     }
 
@@ -165,11 +178,14 @@ mod tests {
             set_mode_600(path.to_str().unwrap()).unwrap();
         }
 
-        fn create_directory(&self, path: &str) {
+        fn create_directory(&self, path: &str) -> Self {
             self.init();
             let directory = &self.path.join(path);
             fs::create_dir_all(&directory).unwrap();
             set_mode_700(&directory.to_str().unwrap()).unwrap();
+            Self {
+                path: self.path.join(path)
+            }
         }
 
         fn read_file(&self, filename: &str) -> (Vec<u8>, u16) {

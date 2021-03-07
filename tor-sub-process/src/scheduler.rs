@@ -10,17 +10,17 @@ use tokio::task::JoinHandle;
 pub struct Scheduler {
     command: Command,
     handle: Option<JoinHandle<()>>,
-    pid: PathBuf,
+    pid_path: PathBuf,
     reload: Arc<AtomicBool>,
     terminate: Arc<AtomicBool>,
 }
 
 impl Scheduler {
-    pub fn new(command: Command, pid: PathBuf) -> Self {
+    pub fn new(command: Command, pid_path: PathBuf) -> Self {
         Self {
             command,
             handle: None,
-            pid,
+            pid_path,
             reload: Arc::new(AtomicBool::new(false)),
             terminate: Arc::new(AtomicBool::new(false)),
         }
@@ -28,7 +28,7 @@ impl Scheduler {
 
     /// Starts the scheduler event loop.
     pub fn start(&mut self) {
-        let pid = Pid::new(PathBuf::from(&self.pid));
+        let pid = Pid::new(PathBuf::from(&self.pid_path));
 
         if let Some(id) = pid.read().expect("Failed to read PID.") {
             panic!(
