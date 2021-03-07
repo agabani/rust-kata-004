@@ -12,7 +12,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let working_directory = PathBuf::from("/var/tmp/tor-sub-process");
 
-    let configuration = Configuration {
+    let mut configuration = Configuration {
         hidden_services: vec![
             HiddenService {
                 service_name: "test_service_1".to_string(),
@@ -43,34 +43,46 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let stdin = std::io::stdin();
 
     for line in stdin.lock().lines() {
-        let result = line.unwrap();
-        match result.as_str() {
-            "shutdown" => {
-                controller.stop().await;
-                return Ok(());
-            }
-            "reload" => {
-                controller.create_hidden_service();
-            }
-            "create_service" => {
-                controller.update(&configuration);
-            }
-            "backup" => {
-                let files = controller
-                    .backup(&configuration)
-                    .iter()
-                    .map(|(service, files)| {
-                        let files = files
-                            .iter()
-                            .map(|file| format!("{}", file))
-                            .collect::<Vec<_>>();
-                        format!("service: {}, files: {:?}", service, files)
-                    })
-                    .collect::<Vec<_>>();
-                println!("{:?}", files);
-            }
-            result => {
-                println!("unknown command: {}", result)
+        let line = line.unwrap();
+        let result = line.split(" ").collect::<Vec<_>>();
+        if let Some((&command, args)) = result.split_first() {
+            match command {
+                "shutdown" => {
+                    controller.stop().await;
+                    return Ok(());
+                }
+                "reload" => {
+                    controller.create_hidden_service();
+                }
+                "create_service" => {
+                    configuration.hidden_services.push(HiddenService {
+                        service_name: args[0].to_string(),
+                        service_port: str::parse::<u16>(args[1]).unwrap(),
+                        host_address: args[2].to_string(),
+                        host_port: str::parse::<u16>(args[3]).unwrap()
+                    });
+
+                    controller.update(&configuration);
+                }
+                "backup" => {
+                    let files = controller
+                        .backup(&configuration)
+                        .iter()
+                        .map(|(service, files)| {
+                            let files = files
+                                .iter()
+                                .map(|file| format!("{}", file))
+                                .collect::<Vec<_>>();
+                            format!("service: {}, files: {:?}", service, files)
+                        })
+                        .collect::<Vec<_>>();
+                    println!("{:?}", files);
+                }
+                result => {
+                    println!("unknown: {}", result);
+                    println!("command: {}", command);
+                    println!("args: {:?}", args);
+                }
             }
         }
     }
